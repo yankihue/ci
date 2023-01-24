@@ -1,0 +1,55 @@
+[[package]]
+name = "pillow"
+version = "9.4.0"
+description = "Python Imaging Library (Fork)"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.extras]
+docs = ["furo", "olefile", "sphinx (>=2.4)", "sphinx-copybutton", "sphinx-inline-tabs", "sphinx-issues (>=3.0.1)", "sphinx-removed-in", "sphinxext-opengraph"]
+tests = ["check-manifest", "coverage", "defusedxml", "markdown2", "olefile", "packaging", "pyroma", "pytest", "pytest-cov", "pytest-timeout"]
+
+[[package]]
+name = "pyobjc-core"
+version = "9.0.1"
+description = "Python<->ObjC Interoperability Module"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[[package]]
+name = "pyobjc-framework-cocoa"
+version = "9.0.1"
+description = "Wrappers for the Cocoa frameworks on macOS"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+pyobjc-core = ">=9.0.1"
+
+[[package]]
+name = "rumps"
+version = "0.4.0"
+description = "Ridiculously Uncomplicated MacOS Python Statusbar apps."
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+pyobjc-framework-Cocoa = "*"
+
+[package.extras]
+dev = ["pytest (>=4.3)", "pytest-mock (>=2.0.0)", "tox (>=3.8)"]
+
+[metadata]
+lock-version = "1.1"
+python-versions = "^3.10"
+content-hash = "92e31314ce17ca8864dc110056446da0bdc72707bb7ff1f4f197fc07225fbcd5"
+
+[metadata.files]
+pillow = []
+pyobjc-core = []
+pyobjc-framework-cocoa = []
+rumps = []
