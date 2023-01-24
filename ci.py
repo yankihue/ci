@@ -53,9 +53,12 @@ class CiApp(object):
         if (find_title(n) != None):
             title = find_title(n)
 
-        base = Image.open(os.path.join(
-            __location__, 'base.jpeg'))  # open base image
-
+        # base = Image.open(os.path.join(
+        #     __location__, 'base.jpeg'))  # open base image
+        # base = Image.open(
+        #     "/System/Library/Desktop Pictures/Solid Colors/Ocher.png")
+        base = Image.new('RGB', (int(NSScreen.mainScreen().frame(
+        ).size.width), int(NSScreen.mainScreen().frame().size.height)), (255, 255, 255))
         image_editable = ImageDraw.Draw(base)  # make it editable
 
         ttf = ImageFont.truetype(
@@ -74,12 +77,12 @@ class CiApp(object):
         image_editable.text(((NSScreen.mainScreen().frame().size.width-w2)/2, ((NSScreen.mainScreen().frame().size.height-h)/2)-h),
                             title, (49, 27, 8, 64), font=ttf)
 
-        base.save('output.jpeg')  # save output
+        base.save('output.png')  # save output
         print(title_text)
         print("Current screen resolution: %dx%d" % (NSScreen.mainScreen(
         ).frame().size.width, NSScreen.mainScreen().frame().size.height))
         # change macos wallpaper
-        command = "osascript -e 'tell application \"System Events\" to tell every desktop to set picture to \"/Users/yanki/Desktop/ci/output.jpeg\" as POSIX file'"
+        command = "osascript -e 'tell application \"System Events\" to tell every desktop to set picture to \"/Users/yanki/Desktop/ci/output.png\" as POSIX file'"
         os.system(command)
 
     def run(self):
