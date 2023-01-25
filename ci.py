@@ -106,7 +106,9 @@ class CiApp(object):
         print("Current screen resolution: %dx%d" %
               (screenWidth, screenHeight))
         # change macos wallpaper
-        command = "osascript -e 'tell application \"System Events\" to tell every desktop to set picture to \"/Users/yanki/Desktop/ci/output.png\" as POSIX file'"
+        output_location = os.path.join(__location__, "/output.png")
+        command = "osascript -e 'tell application \"System Events\" to tell every desktop to set picture to " + \
+            output_location + " as POSIX file'"
         # refresh dock to show new wallpaper
         # TODO: instead of killing dock after setting new wallpaper, add transitionary empty wallpaper to show for a split second before setting new wallpaper
         subprocess.call(['/usr/bin/killall', 'Dock'])
