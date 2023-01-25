@@ -79,9 +79,10 @@ class CiApp(object):
         #     __location__, 'base.jpeg'))  # open base image
         # base = Image.open(
         #     "/System/Library/Desktop Pictures/Solid Colors/Ocher.png")
-        base = Image.new('RGB', (int(NSScreen.mainScreen().frame(
-        ).size.width), int(NSScreen.mainScreen().frame().size.height)), (random.randint(0, 255)  # generate random poem id
-                                                                         , random.randint(0, 255), random.randint(0, 255)))
+        screenHeight = int(NSScreen.mainScreen().frame().size.height)
+        screenWidth = int(NSScreen.mainScreen().frame().size.width)
+        base = Image.new('RGB', (screenWidth,  screenHeight), (random.randint(0, 255)  # generate random poem id
+                                                               , random.randint(0, 255), random.randint(0, 255)))
         image_editable = ImageDraw.Draw(base)  # make it editable
 
         ttf = ImageFont.truetype(
@@ -90,20 +91,20 @@ class CiApp(object):
         # get the size of the poem with font
         w, h = image_editable.textsize(title_text, font=ttf)
 
-        image_editable.text(((NSScreen.mainScreen().frame().size.width-w)/2, (NSScreen.mainScreen().frame().size.height-h)/2), title_text,
+        image_editable.text(((screenWidth-w)/2, (screenHeight-h)/2), title_text,
                             (49, 27, 8, 64), font=ttf)  # center the poem itself
 
         # get the size of the title with font
         w2, h2 = image_editable.textsize(title, font=ttf)
 
         # center the title horizontally, keep it above the poem vertically
-        image_editable.text(((NSScreen.mainScreen().frame().size.width-w2)/2, ((NSScreen.mainScreen().frame().size.height-h)/2)-h),
+        image_editable.text(((screenWidth-w2)/2, ((screenHeight-h)/2)-h),
                             title, (49, 27, 8, 64), font=ttf)
 
         base.save('output.png')  # save output
         print(title_text)
-        print("Current screen resolution: %dx%d" % (NSScreen.mainScreen(
-        ).frame().size.width, NSScreen.mainScreen().frame().size.height))
+        print("Current screen resolution: %dx%d" %
+              (screenWidth, screenHeight))
         # change macos wallpaper
         command = "osascript -e 'tell application \"System Events\" to tell every desktop to set picture to \"/Users/yanki/Desktop/ci/output.png\" as POSIX file'"
         # refresh dock to show new wallpaper
