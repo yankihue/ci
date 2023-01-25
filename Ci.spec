@@ -8,7 +8,7 @@ a = Analysis(
     ['ci.py'],
     pathex=[],
     binaries=[],
-    datas=[('./poems.json', 'json')],
+    datas=[('./poems.json', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

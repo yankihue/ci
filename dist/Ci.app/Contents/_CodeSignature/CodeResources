@@ -6,13 +6,13 @@
 	<dict>
 		<key>Resources/base_library.zip</key>
 		<data>
-		MR7ue//YX3qfU20BURrRMS313ss=
+		anM4vP7PX7blsKgG3g+T6oO0SO8=
 		</data>
 		<key>Resources/icon-windowed.icns</key>
 		<data>
 		eEHOuYpZLB0vKGVIWGZOh5rH8+o=
 		</data>
-		<key>Resources/json/poems.json</key>
+		<key>Resources/poems.json</key>
 		<data>
 		jPRLsOxJkbUEMoAwm6CcuFVEkvE=
 		</data>
@@ -131,11 +131,6 @@
 		<dict>
 			<key>symlink</key>
 			<string>../Resources/base_library.zip</string>
-		</dict>
-		<key>MacOS/json</key>
-		<dict>
-			<key>symlink</key>
-			<string>../Resources/json</string>
 		</dict>
 		<key>MacOS/lib-dynload/_bisect.cpython-310-darwin.so</key>
 		<dict>
@@ -758,11 +753,16 @@
 			<key>requirement</key>
 			<string>cdhash H"226bc91645cc5e33b75bd1af8951e05b69b552a4"</string>
 		</dict>
+		<key>MacOS/poems.json</key>
+		<dict>
+			<key>symlink</key>
+			<string>../Resources/poems.json</string>
+		</dict>
 		<key>Resources/base_library.zip</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			foO6RP4dcnrh19yGU8LkdwKERrqGV3/VNcbYfgu/Ao8=
+			AkKNhmoj0BeGHB29Xqo3c15L89gokQHX2yLvjnjNwVc=
 			</data>
 		</dict>
 		<key>Resources/icon-windowed.icns</key>
@@ -772,7 +772,7 @@
 			uQo7VuWRab4Phv4EEGmfQsyqFqDIXZgO8OtgaAMvCzY=
 			</data>
 		</dict>
-		<key>Resources/json/poems.json</key>
+		<key>Resources/poems.json</key>
 		<dict>
 			<key>hash2</key>
 			<data>

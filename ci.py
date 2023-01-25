@@ -57,7 +57,7 @@ class CiApp(object):
 
         # with open('poems.json') as f:
         # data = json.load(f)
-        with open(os.path.join(__location__, 'poems.json'), 'r') as f:
+        with open(os.path.join(os.path.dirname(__file__), 'poems.json'), 'r') as f:
             data = json.load(f)
 
         def find_poem(n):  # extract poem from json
@@ -100,15 +100,18 @@ class CiApp(object):
         # center the title horizontally, keep it above the poem vertically
         image_editable.text(((screenWidth-w2)/2, ((screenHeight-h)/2)-h),
                             title, (49, 27, 8, 64), font=ttf)
-
-        base.save('output.png')  # save output
+        outputPath = os.path.expanduser("~/Pictures/Ci-Wallpaper.png")
+        # base.save('output.png')  # save output
+        base.save(outputPath)
         print(title_text)
         print("Current screen resolution: %dx%d" %
               (screenWidth, screenHeight))
         # change macos wallpaper
-        output_location = os.path.join(__location__, "/output.png")
+        output_location = os.path.join(
+            os.path.expanduser("~/Pictures/"), 'Ci-Wallpaper.png')
         command = "osascript -e 'tell application \"System Events\" to tell every desktop to set picture to " + \
             output_location + " as POSIX file'"
+        print(command)
         # refresh dock to show new wallpaper
         # TODO: instead of killing dock after setting new wallpaper, add transitionary empty wallpaper to show for a split second before setting new wallpaper
         subprocess.call(['/usr/bin/killall', 'Dock'])

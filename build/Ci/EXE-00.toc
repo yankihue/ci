@@ -49,7 +49,7 @@
  [],
  False,
  False,
- 1674661610,
+ 1674668700,
  [('runw',
    '/Users/yanki/Library/Caches/pypoetry/virtualenvs/ci-NeNbPvhi-py3.10/lib/python3.10/site-packages/PyInstaller/bootloader/Darwin-64bit/runw',
    'EXECUTABLE')])
