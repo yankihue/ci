@@ -80,7 +80,8 @@ class CiApp(object):
         # base = Image.open(
         #     "/System/Library/Desktop Pictures/Solid Colors/Ocher.png")
         base = Image.new('RGB', (int(NSScreen.mainScreen().frame(
-        ).size.width), int(NSScreen.mainScreen().frame().size.height)), (255, 255, 255))
+        ).size.width), int(NSScreen.mainScreen().frame().size.height)), (random.randint(0, 255)  # generate random poem id
+                                                                         , random.randint(0, 255), random.randint(0, 255)))
         image_editable = ImageDraw.Draw(base)  # make it editable
 
         ttf = ImageFont.truetype(
@@ -106,6 +107,7 @@ class CiApp(object):
         # change macos wallpaper
         command = "osascript -e 'tell application \"System Events\" to tell every desktop to set picture to \"/Users/yanki/Desktop/ci/output.png\" as POSIX file'"
         # refresh dock to show new wallpaper
+        # TODO: instead of killing dock after setting new wallpaper, add transitionary empty wallpaper to show for a split second before setting new wallpaper
         subprocess.call(['/usr/bin/killall', 'Dock'])
         os.system(command)
 
