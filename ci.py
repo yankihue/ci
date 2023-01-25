@@ -13,7 +13,7 @@ class CiApp(object):
         self.config = {
             "app_name": "Ci",
             "generate_poem": "Generate Ci",
-            "interval": 10,
+            "interval": 600,
         }
         self.app = rumps.App(self.config["app_name"])
         self.set_up_menu()
@@ -46,7 +46,7 @@ class CiApp(object):
         self.timer.count = 0
         self.start_timer()
 
-    def generate_poem(self):
+    def generate_poem(self, sender=None):
         __location__ = os.path.realpath(os.path.join(
             os.getcwd(), os.path.dirname(__file__)))
 
@@ -110,6 +110,7 @@ class CiApp(object):
         # TODO: instead of killing dock after setting new wallpaper, add transitionary empty wallpaper to show for a split second before setting new wallpaper
         subprocess.call(['/usr/bin/killall', 'Dock'])
         os.system(command)
+        self.reset_timer()
 
     def run(self):
         self.app.run()
