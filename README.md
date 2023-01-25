@@ -1,0 +1,1 @@
+Build command: `pyinstaller --name 'Ci' --windowed --add-data='./poems.json:json' ci.py`
