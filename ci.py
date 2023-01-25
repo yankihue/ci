@@ -12,7 +12,7 @@ class CiApp(object):
         self.config = {
             "app_name": "Ci",
             "generate_poem": "Generate Ci",
-            "interval": 1200,
+            "interval": 10,
         }
         self.app = rumps.App(self.config["app_name"])
         self.set_up_menu()
@@ -20,11 +20,32 @@ class CiApp(object):
             title=self.config["generate_poem"], callback=self.generate_poem)
         self.app.menu = [self.generate_poem_button]
         self.interval = self.config["interval"]
+        self.timer = rumps.Timer(self.on_tick, 1)
+        self.start_timer()
 
     def set_up_menu(self):
         self.app.title = "词"
 
-    def generate_poem(self, sender):
+    def on_tick(self, sender):
+        time_left = sender.end - sender.count
+        mins = time_left // 60 if time_left >= 0 else time_left // 60 + 1
+        secs = time_left % 60 if time_left >= 0 else (-1 * time_left) % 60
+        if mins == 0 and time_left < 0:
+            self.generate_poem()
+            self.reset_timer()
+        sender.count += 1
+
+    def start_timer(self):
+        self.timer.count = 0
+        self.timer.end = self.interval
+        self.timer.start()
+
+    def reset_timer(self):
+        self.timer.stop()
+        self.timer.count = 0
+        self.start_timer()
+
+    def generate_poem(self):
         __location__ = os.path.realpath(os.path.join(
             os.getcwd(), os.path.dirname(__file__)))
 
