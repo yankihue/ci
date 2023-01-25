@@ -5,6 +5,7 @@ from time import time, sleep
 import json
 import random
 import os
+import subprocess
 
 
 class CiApp(object):
@@ -104,6 +105,8 @@ class CiApp(object):
         ).frame().size.width, NSScreen.mainScreen().frame().size.height))
         # change macos wallpaper
         command = "osascript -e 'tell application \"System Events\" to tell every desktop to set picture to \"/Users/yanki/Desktop/ci/output.png\" as POSIX file'"
+        # refresh dock to show new wallpaper
+        subprocess.call(['/usr/bin/killall', 'Dock'])
         os.system(command)
 
     def run(self):
