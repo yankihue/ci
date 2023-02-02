@@ -53,4 +53,8 @@ app = BUNDLE(
     name='Ci.app',
     icon=None,
     bundle_identifier=None,
+    info_plist={
+            'NSPrincipalClass': 'NSApplication',
+            'LSBackgroundOnly': True,
+            },
 )
