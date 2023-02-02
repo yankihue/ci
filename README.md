@@ -1,1 +1,1 @@
-Build command: `pyinstaller --name 'Ci' --windowed --add-data='./poems.json:json' ci.py`
+Build command: `pyinstaller --name 'Ci' --windowed --add-data='./poems.json:.' ci.py`
