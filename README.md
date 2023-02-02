@@ -1,4 +1,4 @@
-Build command: `pyinstaller --name 'Ci' --windowed --add-data='./poems.json:.' ci.py`
+Build command: `pyinstaller Ci.spec`
 
 Create .dmg file for distribution:
 
