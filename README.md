@@ -10,6 +10,12 @@ The `qiji-combo` version is recommended. Download `qiji-combo.ttf` and double cl
 
 ## Installation
 
+[Download the latest release](https://github.com/yankihue/ci/releases) and install the disk image. 
+
+## Building the project
+If you want to build the project from scratch, the process is as follows:
+
+
 Build command: 
 ```bash
 pyinstaller Ci.spec
