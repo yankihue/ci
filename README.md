@@ -4,7 +4,7 @@
 Ci is a wallpaper generator that sets your desktop to a random selection [唐詩三百首 (Three Hundred Tang Poems)](https://en.wikipedia.org/wiki/Three_Hundred_Tang_Poems) every 10 minutes. You can manually trigger a new wallpaper generation using the icon on the menubar.
 ## Requirements
 
-The project uses [齊伋體 qiji-font](https://github.com/LingDong-/qiji-font). It's required to download the font from the [https://github.com/LingDong-/qiji-font/releases](releases page) before installing and using this application. 
+The project uses [齊伋體 qiji-font](https://github.com/LingDong-/qiji-font). It's required to download the font from the [releases page](https://github.com/LingDong-/qiji-font/releases) before installing and using this application. 
 
 The `qiji-combo` version is recommended. Download `qiji-combo.ttf` and double click to install the font.
 
