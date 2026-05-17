@@ -610,7 +610,7 @@ def draw_scroll_mountain(base, points, top_color, bottom_color, alpha, base_y, o
     gradient = Image.new("RGBA", base.size, (0, 0, 0, 0))
     gradient_pixels = gradient.load()
     start_y = int(max(0, min(y for _, y in points) - 20))
-    end_y = int(min(height, base_y + 80))
+    end_y = height
     for y in range(start_y, end_y):
         amount = (y - start_y) / max(1, end_y - start_y)
         color = mix_color(top_color, bottom_color, amount)
