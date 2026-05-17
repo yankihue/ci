@@ -1,8 +1,15 @@
 #!/bin/sh
+set -eu
+
+if [ ! -d "dist/Ci.app" ]; then
+  echo "dist/Ci.app does not exist. Run: PYINSTALLER_CONFIG_DIR=.pyinstaller-cache poetry run pyinstaller -y --clean Ci.spec"
+  exit 1
+fi
+
 # Create a folder (named dmg) to prepare our DMG in (if it doesn't already exist).
 mkdir -p dist/dmg
 # Empty the dmg folder.
-rm -r dist/dmg/*
+rm -rf dist/dmg/*
 # Copy the app bundle to the dmg folder.
 cp -r "dist/Ci.app" dist/dmg
 # If the DMG already exists, delete it.
@@ -19,4 +26,11 @@ test -f "dist/Ci.dmg" && rm "dist/Ci.dmg"
 #   "dist/Hello World.dmg" \
 #   "dist/dmg/"
 
-create-dmg --app-drop-link 600 185 --volname "Ci" --hide-extension "Ci.app" "dist/Ci.dmg" "dist/dmg/"
+create-dmg \
+  --sandbox-safe \
+  --skip-jenkins \
+  --app-drop-link 600 185 \
+  --volname "Ci" \
+  --hide-extension "Ci.app" \
+  "dist/Ci.dmg" \
+  "dist/dmg/"

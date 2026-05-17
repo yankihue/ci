@@ -1,0 +1,6 @@
+.poetry-cache/
+.pyinstaller-cache/
+__pycache__/
+dist/Ci.dmg
+dist/dmg/
+dist/rw.*.Ci.dmg

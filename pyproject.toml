@@ -5,10 +5,11 @@ description = ""
 authors = ["Yankı Sırtaş <yankisirtas@hotmail.com>"]
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.12"
+python = ">=3.10,<3.11"
 Pillow = "^9.4.0"
 rumps = "^0.4.0"
-pyinstaller = "^5.7.0"
+pyinstaller = "^6.11.0"
+setuptools = "<81"
 
 [tool.poetry.dev-dependencies]
 

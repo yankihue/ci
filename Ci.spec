@@ -1,15 +1,20 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from pathlib import Path
+
 
 block_cipher = None
+datas = [('./poems.json', '.')]
+if Path('qiji-combo.ttf').exists():
+    datas.append(('./qiji-combo.ttf', '.'))
 
 
 a = Analysis(
     ['ci.py'],
     pathex=[],
     binaries=[],
-    datas=[('./poems.json', '.')],
-    hiddenimports=[],
+    datas=datas,
+    hiddenimports=['ipaddress', 'pkg_resources'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -52,9 +57,10 @@ app = BUNDLE(
     coll,
     name='Ci.app',
     icon=None,
-    bundle_identifier=None,
+    bundle_identifier='com.yankihue.ci',
     info_plist={
             'NSPrincipalClass': 'NSApplication',
             'LSBackgroundOnly': True,
+            'LSUIElement': True,
             },
 )
