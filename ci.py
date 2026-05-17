@@ -1,4 +1,5 @@
 import json
+import math
 import plistlib
 import random
 import subprocess
@@ -256,6 +257,313 @@ def theme_variant(theme):
     return {**theme, "paper": paper, "paper_alt": paper_alt, "wash": wash, "ink": ink}
 
 
+class Noise2D:
+    def __init__(self, seed):
+        rng = random.Random(seed)
+        perm = list(range(256))
+        rng.shuffle(perm)
+        self.perm = perm * 2
+        self.gradients = [
+            (math.cos(rng.random() * math.tau), math.sin(rng.random() * math.tau))
+            for _ in range(256)
+        ] * 2
+
+    @staticmethod
+    def fade(value):
+        return value * value * value * (value * (value * 6 - 15) + 10)
+
+    @staticmethod
+    def lerp(left, right, amount):
+        return left + amount * (right - left)
+
+    def dot(self, index, x, y):
+        gx, gy = self.gradients[self.perm[index & 255]]
+        return gx * x + gy * y
+
+    def noise2d(self, x, y):
+        x0 = math.floor(x)
+        y0 = math.floor(y)
+        xf = x - x0
+        yf = y - y0
+        u = self.fade(xf)
+        v = self.fade(yf)
+
+        aa = self.perm[(x0 & 255)] + y0
+        ab = self.perm[(x0 & 255)] + y0 + 1
+        ba = self.perm[((x0 + 1) & 255)] + y0
+        bb = self.perm[((x0 + 1) & 255)] + y0 + 1
+
+        x1 = self.lerp(self.dot(aa, xf, yf), self.dot(ba, xf - 1, yf), u)
+        x2 = self.lerp(self.dot(ab, xf, yf - 1), self.dot(bb, xf - 1, yf - 1), u)
+        return self.lerp(x1, x2, v) * 0.5 + 0.5
+
+    def fbm(self, x, y, octaves=5, lacunarity=2.0, gain=0.5):
+        value = 0
+        amplitude = 1
+        frequency = 1
+        maximum = 0
+        for _ in range(octaves):
+            value += self.noise2d(x * frequency, y * frequency) * amplitude
+            maximum += amplitude
+            amplitude *= gain
+            frequency *= lacunarity
+        return value / maximum
+
+    def ridge(self, x, y, octaves=4, sharpness=2.0):
+        value = 0
+        amplitude = 1
+        frequency = 1
+        maximum = 0
+        previous = 1
+        for _ in range(octaves):
+            sample = self.noise2d(x * frequency, y * frequency)
+            sample = 1 - abs(sample * 2 - 1)
+            sample = math.pow(sample, sharpness) * previous
+            previous = sample
+            value += sample * amplitude
+            maximum += amplitude
+            amplitude *= 0.5
+            frequency *= 2.1
+        return value / maximum
+
+    def warp(self, x, y, amount=0.5, octaves=4):
+        qx = self.fbm(x, y, octaves)
+        qy = self.fbm(x + 5.2, y + 1.3, octaves)
+        return self.fbm(x + qx * amount, y + qy * amount, octaves)
+
+    def turbulence(self, x, y, octaves=4):
+        value = 0
+        amplitude = 1
+        frequency = 1
+        maximum = 0
+        for _ in range(octaves):
+            value += abs(self.noise2d(x * frequency, y * frequency) * 2 - 1) * amplitude
+            maximum += amplitude
+            amplitude *= 0.5
+            frequency *= 2
+        return value / maximum
+
+
+def draw_gradient_rect(base, top, bottom, alpha=90, stop=0.7):
+    width, height = base.size
+    gradient_height = max(1, int(height * stop))
+    gradient = Image.new("RGBA", (1, gradient_height), (0, 0, 0, 0))
+    pixels = gradient.load()
+    for y in range(gradient_height):
+        amount = y / max(1, height * stop)
+        color = mix_color(top, bottom, amount)
+        pixels[0, y] = (*color, alpha)
+    overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    overlay.paste(gradient.resize((width, gradient_height)), (0, 0))
+    return Image.alpha_composite(base.convert("RGBA"), overlay).convert("RGB")
+
+
+def generate_mountain_profile(noise, width, height, base_y, layer_seed, complexity, rng):
+    points = []
+    segments = max(80, math.ceil(width / 6))
+    for index in range(segments + 1):
+        x = (index / segments) * width
+        nx = x / width
+        elevation = 0
+        elevation += noise.warp(nx * 1.2 + layer_seed, layer_seed * 0.1, 0.8, 3) * 0.35
+        ridge = noise.ridge(nx * 1.8 + layer_seed * 2, layer_seed * 0.2, 4, 2.5)
+        elevation += ridge * 0.4 * complexity
+        elevation += noise.ridge(nx * 3 + layer_seed * 3, layer_seed * 0.3, 3, 1.8) * 0.15 * complexity
+        elevation += noise.turbulence(nx * 6 + layer_seed * 4, layer_seed * 0.4, 4) * 0.1 * complexity
+        valley = noise.fbm(nx * 0.6 + layer_seed * 5, 0, 2)
+        valley_depth = math.pow(max(0, 0.4 - valley), 2) * 3
+        elevation *= 1 - valley_depth * 0.6
+        left_fade = math.pow(math.sin(min(nx * 2, 1) * (math.pi / 2)), 0.6)
+        right_fade = math.pow(math.sin(min((1 - nx) * 2, 1) * (math.pi / 2)), 0.6)
+        elevation *= left_fade * right_fade
+        if ridge > 0.6 and rng.random() > 0.7:
+            elevation += rng.random() * 0.08 * complexity
+        points.append((x, base_y - elevation * height * 0.45))
+    return points
+
+
+def draw_mountain_layer(base, points, color, alpha, bottom_y, strokes=False, rng=None):
+    width, height = base.size
+    overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+    polygon = [(-10, height + 10), *points, (width + 10, height + 10)]
+    draw.polygon(polygon, fill=(*color, alpha))
+
+    if strokes and rng:
+        stroke_count = 0
+        for index in range(2, len(points) - 2, 4):
+            if rng.random() > 0.28:
+                continue
+            x, y = points[index]
+            next_x, next_y = points[index + 1]
+            prev_x, prev_y = points[index - 1]
+            slope = (next_y - prev_y) / max(1, next_x - prev_x)
+            for _ in range(1 + int(rng.random() * 4)):
+                length = 8 + rng.random() * 34
+                start_y = y + 8 + rng.random() * 70
+                if start_y > bottom_y:
+                    continue
+                end_y = start_y + slope * length + (rng.random() - 0.5) * 5
+                line_alpha = int(18 + rng.random() * 28)
+                line_width = max(1, int(1 + rng.random() * 2))
+                draw.line(
+                    (x - length / 2, start_y, x + length / 2, end_y),
+                    fill=(*color, line_alpha),
+                    width=line_width,
+                )
+                stroke_count += 1
+                if stroke_count > 360:
+                    break
+
+    return Image.alpha_composite(base.convert("RGBA"), overlay).convert("RGB")
+
+
+def draw_mist(base, theme, rng):
+    width, height = base.size
+    overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+    mist = mix_color(theme["paper_alt"], (245, 245, 238), 0.45)
+    for _ in range(5 + rng.randrange(4)):
+        y = height * (0.32 + rng.random() * 0.42)
+        band_h = height * (0.035 + rng.random() * 0.07)
+        x0 = -width * 0.08 + rng.random() * width * 0.12
+        draw.rounded_rectangle(
+            (x0, y, x0 + width * (0.8 + rng.random() * 0.35), y + band_h),
+            radius=int(band_h / 2),
+            fill=(*mist, int(20 + rng.random() * 34)),
+        )
+    overlay = overlay.filter(ImageFilter.GaussianBlur(max(12, width // 95)))
+    return Image.alpha_composite(base.convert("RGBA"), overlay).convert("RGB")
+
+
+def draw_water(base, theme, rng):
+    width, height = base.size
+    overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+    water_y = height * 0.82
+    water_color = mix_color(theme["paper_alt"], theme["wash"], 0.18)
+    draw.rectangle((0, water_y, width, height), fill=(*water_color, 42))
+    ripple_color = mix_color(theme["ink"], theme["wash"], 0.45)
+    for index in range(16):
+        y = water_y + 10 + index * height * 0.013 + rng.random() * 8
+        amplitude = 2 + rng.random() * 4
+        step = width / 8
+        points = []
+        for segment in range(9):
+            x = segment * step
+            points.append((x, y + math.sin(segment + rng.random()) * amplitude))
+        draw.line(points, fill=(*ripple_color, max(8, 26 - index)), width=1)
+    return Image.alpha_composite(base.convert("RGBA"), overlay).convert("RGB")
+
+
+def draw_tree(draw, x, y, size, color, alpha, rng):
+    lean = (rng.random() - 0.5) * size * 0.25
+    draw.line((x, y, x + lean, y - size), fill=(*color, alpha), width=max(1, int(size * 0.025)))
+    if rng.random() > 0.45:
+        for index in range(5):
+            by = y - size * (0.22 + index * 0.13)
+            bw = size * (0.42 - index * 0.035)
+            draw.arc(
+                (x - bw, by - size * 0.05, x + bw, by + size * 0.14),
+                185,
+                355,
+                fill=(*color, int(alpha * 0.75)),
+                width=max(1, int(size * 0.025)),
+            )
+    else:
+        for index in range(3):
+            cy = y - size * (0.42 + index * 0.18)
+            cx = x + lean * (1 - index * 0.18)
+            draw.ellipse(
+                (
+                    cx - size * 0.23,
+                    cy - size * 0.07,
+                    cx + size * 0.23,
+                    cy + size * 0.07,
+                ),
+                fill=(*color, int(alpha * (0.7 - index * 0.08))),
+            )
+
+
+def draw_scene_details(base, theme, rng):
+    width, height = base.size
+    overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+    ink = theme["ink"]
+
+    for _ in range(7 + rng.randrange(6)):
+        x = width * (0.05 + rng.random() * 0.9)
+        y = height * (0.58 + rng.random() * 0.22)
+        draw_tree(draw, x, y, height * (0.035 + rng.random() * 0.05), ink, 80, rng)
+
+    if rng.random() > 0.25:
+        bx = width * (0.18 + rng.random() * 0.58)
+        by = height * (0.14 + rng.random() * 0.16)
+        for _ in range(4 + rng.randrange(5)):
+            x = bx + (rng.random() - 0.5) * width * 0.09
+            y = by + (rng.random() - 0.5) * height * 0.06
+            size = 5 + rng.random() * 7
+            draw.arc((x - size, y - size, x, y + size), 210, 340, fill=(*ink, 80), width=1)
+            draw.arc((x, y - size, x + size, y + size), 200, 330, fill=(*ink, 80), width=1)
+
+    if rng.random() > 0.35:
+        x = width * (0.18 + rng.random() * 0.55)
+        y = height * (0.835 + rng.random() * 0.035)
+        size = width * (0.018 + rng.random() * 0.014)
+        draw.pieslice((x - size, y - size * 0.35, x + size, y + size * 0.45), 0, 180, fill=(*ink, 82))
+        draw.line((x + size * 0.12, y, x + size * 0.12, y - size * 0.58), fill=(*ink, 82), width=max(1, int(size * 0.06)))
+        draw.arc((x - size * 0.08, y - size * 0.72, x + size * 0.32, y - size * 0.2), 205, 335, fill=(*ink, 70), width=1)
+
+    return Image.alpha_composite(base.convert("RGBA"), overlay).convert("RGB")
+
+
+def draw_shanshui_background(width, height, theme):
+    seed = random.randrange(1_000_000_000)
+    rng = random.Random(seed)
+    noise = Noise2D(seed)
+    base = Image.new("RGB", (width, height), theme["paper"])
+    sky_top = mix_color(theme["paper_alt"], (230, 235, 232), 0.35)
+    base = draw_gradient_rect(base, sky_top, theme["paper"], alpha=115, stop=0.72)
+    base = add_paper_texture(base, theme)
+
+    mountain_specs = [
+        (0.40, 0.52, 0.18, 5, 55),
+        (0.48, 0.70, 0.28, 4, 72),
+        (0.56, 0.84, 0.40, 3, 92),
+        (0.66, 1.00, 0.58, 2, 116),
+        (0.76, 1.12, 0.75, 1, 138),
+    ]
+    for idx, (base_pct, complexity, color_amount, layer_seed, alpha) in enumerate(mountain_specs):
+        color = mix_color(theme["paper_alt"], theme["ink"], color_amount)
+        points = generate_mountain_profile(
+            noise,
+            width,
+            height,
+            height * base_pct,
+            layer_seed,
+            complexity,
+            rng,
+        )
+        base = draw_mountain_layer(
+            base,
+            points,
+            color,
+            alpha,
+            height * 0.9,
+            strokes=idx >= 2,
+            rng=rng,
+        )
+        if idx in (1, 3):
+            base = draw_mist(base, theme, rng)
+
+    base = draw_water(base, theme, rng)
+    base = draw_scene_details(base, theme, rng)
+    base = draw_mist(base, theme, rng)
+    if random.random() < 0.45:
+        base = add_deckle_shadow(base, theme)
+    return base
+
+
 def add_paper_texture(base, theme):
     width, height = base.size
     noise = Image.effect_noise((width, height), random.randint(16, 32)).convert("L")
@@ -311,11 +619,7 @@ def add_deckle_shadow(base, theme):
 def draw_wallpaper(poem, output_path):
     width, height = screen_size()
     theme = theme_variant(random.choice(THEMES))
-    base = Image.new("RGB", (width, height), theme["paper"])
-    base = add_paper_texture(base, theme)
-    base = add_wash_marks(base, theme)
-    if random.random() < 0.65:
-        base = add_deckle_shadow(base, theme)
+    base = draw_shanshui_background(width, height, theme)
     draw = ImageDraw.Draw(base)
     poem_font = load_font(max(44, min(width, height) // 24))
     title_font = load_font(max(30, min(width, height) // 36))
