@@ -11,7 +11,7 @@ The existing renderer and corpus are already Python-native, and the current app 
 - `qiji-combo.ttf` is bundled when present beside `Ci.spec`; otherwise the app looks for an installed `qiji-combo.ttf` font and shows a clear error if it is missing.
 - Generated wallpapers and preferences live under `~/Library/Application Support/Ci`.
 - Start-at-login is implemented with a user LaunchAgent at `~/Library/LaunchAgents/com.yankihue.ci.plist`.
-- The shanshui renderer is a static Pillow port of the canvas visualization pattern: each run renders one still PNG frame for macOS wallpaper use.
+- The shanshui renderer is a static Pillow port of the Ink and Scroll visualization patterns: each run renders one still PNG frame for macOS wallpaper use.
 
 ## Current Tradeoffs
 

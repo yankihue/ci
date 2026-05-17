@@ -21,6 +21,11 @@ INTERVALS = {
     "1 hour": 60 * 60,
     "Daily": 24 * 60 * 60,
 }
+RENDER_STYLES = {
+    "Random": "random",
+    "Ink": "ink",
+    "Scroll": "scroll",
+}
 WALLPAPER_PREFIX = "Ci-Wallpaper"
 EMPTY_POEM_TEXT = "Generate a wallpaper to see the current poem."
 MENU_POEM_LINE_LIMIT = 10
@@ -152,6 +157,7 @@ def load_settings():
         "paused": False,
         "launch_at_login": False,
         "last_wallpaper": None,
+        "render_style": "random",
     }
     path = settings_path()
     if not path.exists():
@@ -564,6 +570,116 @@ def draw_shanshui_background(width, height, theme):
     return base
 
 
+def generate_scroll_profile(width, layer_height, base_y, rng):
+    points = []
+    segments = 120
+    peak_count = 1 + rng.randrange(2)
+    peaks = [
+        {
+            "pos": 0.2 + rng.random() * 0.6,
+            "height": 0.5 + rng.random() * 0.5,
+            "width": 0.15 + rng.random() * 0.25,
+        }
+        for _ in range(peak_count)
+    ]
+    phase = rng.random() * 1000
+    for index in range(segments + 1):
+        t = index / segments
+        x = t * width
+        elevation = 0
+        for peak in peaks:
+            distance = abs(t - peak["pos"]) / peak["width"]
+            if distance < 1:
+                elevation = max(elevation, peak["height"] * math.pow(1 - distance * distance, 1.5))
+        elevation += (math.sin(t * math.tau * 3 + phase) + 1) * 0.045
+        elevation += (math.sin(t * math.tau * 9 + phase * 0.7) + 1) * 0.025
+        elevation += (rng.random() - 0.5) * 0.025
+        edge_fade = min(t * 4, (1 - t) * 4, 1)
+        elevation = max(0, elevation * edge_fade)
+        points.append((x, base_y - elevation * layer_height))
+    return points
+
+
+def draw_scroll_mountain(base, points, top_color, bottom_color, alpha, base_y, outline_alpha=70):
+    width, height = base.size
+    mask = Image.new("L", base.size, 0)
+    mask_draw = ImageDraw.Draw(mask)
+    polygon = [(-10, height + 10), *points, (width + 10, height + 10)]
+    mask_draw.polygon(polygon, fill=alpha)
+
+    gradient = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    gradient_pixels = gradient.load()
+    start_y = int(max(0, min(y for _, y in points) - 20))
+    end_y = int(min(height, base_y + 80))
+    for y in range(start_y, end_y):
+        amount = (y - start_y) / max(1, end_y - start_y)
+        color = mix_color(top_color, bottom_color, amount)
+        for x in range(width):
+            gradient_pixels[x, y] = (*color, 255)
+
+    overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    overlay.paste(gradient, (0, 0), mask)
+    draw = ImageDraw.Draw(overlay)
+    draw.line(points, fill=(*top_color, outline_alpha), width=2)
+    return Image.alpha_composite(base.convert("RGBA"), overlay).convert("RGB")
+
+
+def draw_scroll_overlays(base, theme):
+    width, height = base.size
+    base = add_paper_texture(base, theme)
+    overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+    mount_dark = mix_color(theme["ink"], (139, 115, 85), 0.55)
+    mount_light = mix_color(theme["paper_alt"], (196, 168, 130), 0.55)
+    draw.rectangle((0, 0, width, 22), fill=(*mount_dark, 80))
+    draw.rectangle((0, 22, width, 34), fill=(*mount_light, 55))
+    draw.rectangle((0, height - 22, width, height), fill=(*mount_dark, 80))
+    draw.rectangle((0, height - 34, width, height - 22), fill=(*mount_light, 55))
+    draw.rectangle((0, 0, 14, height), fill=(*mount_dark, 52))
+    draw.rectangle((width - 14, 0, width, height), fill=(*mount_dark, 52))
+    return Image.alpha_composite(base.convert("RGBA"), overlay).convert("RGB")
+
+
+def draw_scroll_background(width, height, theme):
+    rng = random.Random(random.randrange(1_000_000_000))
+    base = Image.new("RGB", (width, height), theme["paper"])
+    base = draw_gradient_rect(
+        base,
+        mix_color(theme["paper_alt"], (232, 226, 214), 0.3),
+        theme["paper"],
+        alpha=135,
+        stop=0.88,
+    )
+
+    for layer in range(6, -1, -1):
+        depth = layer / 7
+        layer_height = height * (0.3 + depth * 0.5)
+        base_y = height * (0.52 + (6 - layer) * 0.055)
+        color_amount = 0.12 + (6 - layer) * 0.105
+        top_color = mix_color(theme["paper_alt"], theme["ink"], color_amount)
+        bottom_color = mix_color(theme["paper"], top_color, 0.55)
+        for _ in range(1 + (1 if rng.random() > 0.45 else 0)):
+            profile_width = width * (0.58 + rng.random() * 0.35)
+            offset = width * (0.18 + rng.random() * 0.25)
+            points = generate_scroll_profile(profile_width, layer_height, base_y, rng)
+            points = [(x + offset + (rng.random() - 0.5) * 2, y) for x, y in points]
+            base = draw_scroll_mountain(
+                base,
+                points,
+                top_color,
+                bottom_color,
+                int(86 + (6 - layer) * 18),
+                base_y,
+                outline_alpha=int(35 + (6 - layer) * 8),
+            )
+
+    base = draw_mist(base, theme, rng)
+    base = draw_water(base, theme, rng)
+    base = draw_scene_details(base, theme, rng)
+    base = draw_scroll_overlays(base, theme)
+    return base
+
+
 def add_paper_texture(base, theme):
     width, height = base.size
     noise = Image.effect_noise((width, height), random.randint(16, 32)).convert("L")
@@ -616,26 +732,82 @@ def add_deckle_shadow(base, theme):
     return Image.alpha_composite(base.convert("RGBA"), overlay).convert("RGB")
 
 
-def draw_wallpaper(poem, output_path):
+def draw_vertical_text(draw, text, x, y, font, fill, gap=0):
+    cursor = y
+    for char in text:
+        if char.isspace():
+            cursor += font.size * 0.65
+            continue
+        left, top, right, bottom = draw.textbbox((0, 0), char, font=font)
+        char_w = right - left
+        draw.text((x - char_w / 2, cursor), char, fill=fill, font=font)
+        cursor += (bottom - top) + gap
+
+
+def vertical_text_height(draw, text, font, gap=0):
+    height = 0
+    for char in text:
+        if char.isspace():
+            height += font.size * 0.65
+            continue
+        _, top, _, bottom = draw.textbbox((0, 0), char, font=font)
+        height += bottom - top + gap
+    return height
+
+
+def draw_poem_overlay(base, poem, theme):
+    width, height = base.size
+    draw = ImageDraw.Draw(base)
+    poem_font = load_font(max(42, min(width, height) // 23))
+    title_font = load_font(max(22, min(width, height) // 50))
+    poem_text = render_text(poem.contents)
+    lines = [line.strip() for line in poem_text.splitlines() if line.strip()]
+    if not lines:
+        lines = [poem_text]
+    ink = theme["ink"]
+    text_fill = ink
+    title_fill = mix_color(ink, theme["wash"], 0.24)
+    column_gap = max(poem_font.size * 1.05, width * 0.035)
+    right = width * 0.72
+    block_width = max(0, (len(lines) - 1) * column_gap)
+    if right - block_width < width * 0.28:
+        right = width * 0.78
+
+    overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    overlay_draw = ImageDraw.Draw(overlay)
+    glow_fill = (*mix_color(theme["paper_alt"], (255, 252, 245), 0.65), 170)
+    for index, line in enumerate(lines):
+        x = right - index * column_gap
+        line_height = vertical_text_height(draw, line, poem_font, gap=6)
+        y = max(height * 0.24, (height - line_height) / 2)
+        draw_vertical_text(overlay_draw, line, x, y, poem_font, glow_fill, gap=6)
+    meta = render_text(f"{poem.author}　{poem.title}" if poem.author else poem.title)
+    meta_x = min(width * 0.9, right + column_gap * 1.2)
+    meta_h = vertical_text_height(draw, meta, title_font, gap=2)
+    draw_vertical_text(overlay_draw, meta, meta_x, max(height * 0.16, (height - meta_h) / 2), title_font, glow_fill, gap=2)
+    overlay = overlay.filter(ImageFilter.GaussianBlur(max(8, width // 170)))
+    base = Image.alpha_composite(base.convert("RGBA"), overlay).convert("RGB")
+    draw = ImageDraw.Draw(base)
+
+    for index, line in enumerate(lines):
+        x = right - index * column_gap
+        line_height = vertical_text_height(draw, line, poem_font, gap=6)
+        y = max(height * 0.24, (height - line_height) / 2)
+        draw_vertical_text(draw, line, x, y, poem_font, text_fill, gap=6)
+
+    draw_vertical_text(draw, meta, meta_x, max(height * 0.16, (height - meta_h) / 2), title_font, title_fill, gap=2)
+    return base
+
+
+def draw_wallpaper(poem, output_path, render_style="random"):
     width, height = screen_size()
     theme = theme_variant(random.choice(THEMES))
-    base = draw_shanshui_background(width, height, theme)
-    draw = ImageDraw.Draw(base)
-    poem_font = load_font(max(44, min(width, height) // 24))
-    title_font = load_font(max(30, min(width, height) // 36))
-
-    poem_text = render_text(poem.contents)
-    poem_w, poem_h = text_size(draw, poem_text, poem_font)
-    title = render_text(poem.menu_summary)
-    title_w, title_h = text_size(draw, title, title_font)
-
-    x = max((width - poem_w) / 2, 80)
-    y = max((height - poem_h) / 2, 120)
-    title_y = max(y - title_h - 48, 80)
-    ink = theme["ink"]
-
-    draw.multiline_text(((width - title_w) / 2, title_y), title, ink, font=title_font, spacing=16)
-    draw.multiline_text((x, y), poem_text, ink, font=poem_font, spacing=16, align="center")
+    style = render_style if render_style in ("ink", "scroll") else random.choice(["ink", "scroll"])
+    if style == "scroll":
+        base = draw_scroll_background(width, height, theme)
+    else:
+        base = draw_shanshui_background(width, height, theme)
+    base = draw_poem_overlay(base, poem, theme)
     base.save(output_path)
     return width, height
 
@@ -711,6 +883,10 @@ class CiApp:
             label: rumps.MenuItem(label, callback=self.set_interval)
             for label in INTERVALS
         }
+        self.render_style_items = {
+            label: rumps.MenuItem(label, callback=self.set_render_style)
+            for label in RENDER_STYLES
+        }
 
         self.app.menu = [
             self.new_item,
@@ -720,6 +896,7 @@ class CiApp:
             *self.current_line_items,
             self.reveal_item,
             None,
+            {"Style": list(self.render_style_items.values())},
             {"Interval": list(self.interval_items.values())},
             self.login_item,
         ]
@@ -732,6 +909,8 @@ class CiApp:
         self.login_item.state = launch_at_login_enabled()
         for label, item in self.interval_items.items():
             item.state = self.settings["interval"] == INTERVALS[label]
+        for label, item in self.render_style_items.items():
+            item.state = self.settings["render_style"] == RENDER_STYLES[label]
         if self.current_poem:
             self.current_header.title = f"Current Poem: {self.current_poem.menu_summary}"
             for item, line in zip(self.current_line_items, self.current_poem.contents.splitlines()):
@@ -763,6 +942,10 @@ class CiApp:
         self.reset_timer()
         self.save_and_refresh()
 
+    def set_render_style(self, sender):
+        self.settings["render_style"] = RENDER_STYLES[sender.title]
+        self.save_and_refresh()
+
     def toggle_pause(self, _sender):
         self.settings["paused"] = not self.settings["paused"]
         self.save_and_refresh()
@@ -787,7 +970,7 @@ class CiApp:
         poem = random.choice(self.poems)
         output = wallpaper_path()
         try:
-            width, height = draw_wallpaper(poem, output)
+            width, height = draw_wallpaper(poem, output, self.settings["render_style"])
             set_wallpaper(output)
         except (RuntimeError, OSError, subprocess.CalledProcessError) as exc:
             rumps.alert("Ci could not generate a wallpaper", str(exc))

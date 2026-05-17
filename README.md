@@ -7,7 +7,8 @@ Ci is a macOS menu bar app that generates classical Chinese poetry wallpapers fr
 ## Features
 
 - Menu bar control for generating a new wallpaper.
-- Generative shanshui-style scenes with layered mountains, mist, water, and ink details.
+- Generative shanshui-style scenes with Ink and Scroll modes.
+- Right-to-left vertical poem layout inspired by classical scroll reading.
 - Pause and resume scheduling.
 - Interval choices: 10 minutes, 30 minutes, 1 hour, or daily.
 - Current poem title and text shown in the menu.
@@ -35,6 +36,7 @@ After launch, Ci appears as `词` in the menu bar.
 - `Pause` stops scheduled changes.
 - `Current Poem` shows the title, author, and poem text from the last generated wallpaper.
 - `Reveal Wallpaper` opens the generated wallpaper in Finder.
+- `Style` switches between `Random`, `Ink`, and `Scroll` render modes.
 - `Interval` controls the automatic refresh cadence.
 - `Start at Login` creates or removes `~/Library/LaunchAgents/com.yankihue.ci.plist`.
 
